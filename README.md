@@ -1,1 +1,1 @@
-# project-AutoUpdateInvestmentDB
+# AutoUpdateInvestmentDB

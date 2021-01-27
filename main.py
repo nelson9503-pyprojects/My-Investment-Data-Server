@@ -1,0 +1,3 @@
+import autoinvestdb
+
+autoinvestdb.RUN()

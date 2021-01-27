@@ -1,0 +1,9 @@
+[submodule "autoinvestdb/iexcloudapi"]
+	path = autoinvestdb/iexcloudapi
+	url = https://github.com/nelson9503-pyprojects/iexcloudapi.git
+[submodule "autoinvestdb/mysqlite"]
+	path = autoinvestdb/mysqlite
+	url = https://github.com/nelson9503-pyprojects/mysqlite.git
+[submodule "autoinvestdb/yfapi"]
+	path = autoinvestdb/yfapi
+	url = https://github.com/nelson9503-pyprojects/yfapi.git

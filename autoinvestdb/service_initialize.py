@@ -2,43 +2,24 @@ from . import mysqlite
 import os
 
 
-class Initializer:
+def Initialize():
 
-    def __init__(self):
-        self.report = ""
-        self.activate = True
+    print("Initializing...")
 
-    def run(self):
-        try:
-            self.check_database_exists()
-            self.check_configs_table_exists()
-            self.check_symbols_table_exists()
-        except:
-            pass
-        self.activate = False
+    # database
+    db = mysqlite.DB("./investment.db")
 
-    def check_database_exists(self):
-        self.report = "Initializer: initializing database..."
-        if not os.path.exists("./investment.db"):
-            db = mysqlite.DB("./investment.db")
-        db.close()
+    # configs
+    if not "configs" in db.listTB("configs"):
+        tb = db.createTB("configs", "item", "CHAR(50)")
+        tb.addCol("value", "CHAR(200)")
 
-    def check_configs_table_exists(self):
-        self.report = "Initializer: initializing configs table..."
-        db = mysqlite.DB("./investment.db")
-        if not "configs" in db.listTB("configs"):
-            tb = db.createTB("configs", "item", "CHAR(50)")
-            tb.addCol("value", "CHAR(200)")
-            db.commit()
-        db.close()
+    # symbols
+    if not "symbols" in db.listTB("symbols"):
+        tb = db.createTB("symbols", "symbol", "CHAR(20)")
+        tb.addCol("market", "CHAR(5)")
+        tb.addCol("auto", "BOOLEAN")
+        tb.addCol("enable", "BOOLEAN")
 
-    def check_symbols_table_exists(self):
-        self.report = "Initializer: initializing symbols table..."
-        db = mysqlite.DB("./investment.db")
-        if not "symbols" in db.listTB("symbols"):
-            tb = db.createTB("symbols", "symbol", "CHAR(20)")
-            tb.addCol("market", "CHAR(5)")
-            tb.addCol("auto", "BOOLEAN")
-            tb.addCol("enable", "BOOLEAN")
-            db.commit()
-        db.close()
+    db.commit()
+    db.close()

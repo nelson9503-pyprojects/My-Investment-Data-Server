@@ -4,88 +4,61 @@ import tkinter as tk
 from tkinter import ttk
 
 
-class USSymbolUpdater:
+def Update_US_Symbols():
 
-    def __init__(self):
-        self.report = ""
-        self.activate = True
-    
-    def run(self):
+    # get symbols from db
+    db = mysqlite.DB("./investment.db")
+    tb = db.TB("symbols")
+    dbsymbols = tb.query("*", 'WHERE `market`="us"')
+
+    # disable all symbols that is auto management
+    for symbol in dbsymbols:
+        if dbsymbols[symbol]["auto"] == True:
+            dbsymbols[symbol]["enable"] = False
+
+    # get symbols from iex
+    configs = db.TB("configs").query()
+    if not "iex_token" in configs:
+        configs["iex_token"] = {"value": ""}
+    while True:
         try:
-            self.get_symbols_from_db()
-            self.get_symbols_from_iex()
-            self.disable_all_symbols()
-            self.update_symbols_from_iex_to_db()
+            token = configs["iex_token"]["value"]
+            iexsymbols = iexcloudapi.getSymbols(token)
+            break
         except:
-            pass
-        self.activate = False
+            configs = ask_user_token(configs)
+            db.TB("configs").update(configs)
+    for symbol in iexsymbols:
+        symbol = symbol.replace(".", "-").upper()
+        if not symbol in dbsymbols:
+            dbsymbols[symbol] = {
+                "market": "us",
+                "auto": True,
+                "enable": True
+            }
+        elif dbsymbols[symbol]["auto"] == True:
+            dbsymbols[symbol]["enable"] = True
 
-    def get_symbols_from_db(self):
-        self.report = "USSymbolUpdater: getting symbols from database..."
-        db = mysqlite.DB("./investment.db")
-        tb = db.TB("symbols")
-        self.dbsymbols = tb.query("*", 'WHERE `market`="us"')
-        db.close()
+    # save
+    tb.update(dbsymbols)
+    db.commit()
+    db.close()
 
-    def get_symbols_from_iex(self):
-        self.report = "USSymbolUpdater: getting symbols from iex cloud..."
-        db = mysqlite.DB("./investment.db")
-        tb = db.TB("configs")
-        self.configs = tb.query()
-        if not "iex_token" in self.configs:
-            self.configs["iex_token"] = {"value": ""}
-        while True:
-            try:
-                token = self.configs["iex_token"]["value"]
-                self.iexsymbols = iexcloudapi.getSymbols(token)
-                break
-            except:
-                self.ask_user_token()
-                tb.update(self.configs)
-                db.commit()
-        db.close()
 
-    def disable_all_symbols(self):
-        self.report = "USSymbolUpdater: disabling symbols in database..."
-        for symbol in self.dbsymbols:
-            if self.dbsymbols[symbol]["auto"] == True:
-                self.dbsymbols[symbol]["enable"] = False
+def ask_user_token(configs):
+    win = tk.Tk()
+    win.geometry("500x70")
+    win.title("Please provide IEX token")
+    lbl = ttk.Label(win, text="Please provide IEX token:")
+    lbl.pack(fill="both")
+    entry = ttk.Entry(win)
+    entry.pack(fill="both")
 
-    def update_symbols_from_iex_to_db(self):
-        n = 0
-        for symbol in self.iexsymbols:
-            n += 1
-            self.report = "USSymbolUpdater: updating symbols\t{}/{}".format(
-                n, len(self.iexsymbols))
-            symbol = symbol.replace(".", "-").upper()
-            if not symbol in self.dbsymbols:
-                self.dbsymbols[symbol] = {
-                    "market": "us",
-                    "auto": True,
-                    "enable": True
-                }
-            elif self.dbsymbols[symbol]["auto"] == True:
-                self.dbsymbols[symbol]["enable"] = True
-        self.report = "saving changes..."
-        db = mysqlite.DB("./investment.db")
-        tb = db.TB("symbols")
-        tb.update(self.dbsymbols)
-        db.commit()
-        db.close()
+    def getToken():
+        configs["iex_token"]["value"] = entry.get()
+        win.destroy()
+    btn = ttk.Button(win, text="submit", command=getToken)
+    btn.pack()
+    win.mainloop()
 
-    def ask_user_token(self):
-        self.report = "USSymbolUpdater: waiting iex token from user..."
-        win = tk.Tk()
-        win.geometry("500x70")
-        win.title("Please provide IEX token")
-        lbl = ttk.Label(win, text="Please provide IEX token:")
-        lbl.pack(fill="both")
-        entry = ttk.Entry(win)
-        entry.pack(fill="both")
-
-        def getToken():
-            self.configs["iex_token"]["value"] = entry.get()
-            win.destroy()
-        btn = ttk.Button(win, text="submit", command=getToken)
-        btn.pack()
-        win.mainloop()
+    return configs

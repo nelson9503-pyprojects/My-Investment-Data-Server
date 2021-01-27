@@ -7,24 +7,14 @@ import threading
 def Update_US_Historical_Data():
     global symbols
     symbols = get_symbols_need_update()
-
-    def update_robert():
-        global symbols
-        tblist = get_table_list()
-        while len(symbols) > 0:
-            symbol = symbols.pop()
-            print("Updating symbol historical data...\tremaining: {}".format(
-                len(symbols)))
-            if not symbol + "_price" in tblist:
-                create_symbol_tables(symbol)
-            update_symbol_data(symbol)
-    threads = []
-    for _ in range(5):
-        threads.append(threading.Thread(target=update_robert))
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
+    tblist = get_table_list()
+    while len(symbols) > 0:
+        symbol = symbols.pop()
+        print("Updating symbol historical data...\tremaining: {}".format(
+            len(symbols)))
+        if not symbol + "_price" in tblist:
+            create_symbol_tables(symbol)
+        update_symbol_data(symbol)
 
 
 def get_table_list() -> list:

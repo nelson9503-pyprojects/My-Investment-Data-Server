@@ -6,6 +6,8 @@ from tkinter import ttk
 
 def Update_US_Symbols():
 
+    print("updating us symbols...")
+
     # get symbols from db
     db = mysqlite.DB("./investment.db")
     tb = db.TB("symbols")

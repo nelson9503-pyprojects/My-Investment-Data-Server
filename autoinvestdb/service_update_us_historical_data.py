@@ -10,8 +10,8 @@ def Update_US_Historical_Data():
     tblist = get_table_list()
     while len(symbols) > 0:
         symbol = symbols.pop()
-        print("Updating symbol historical data...\tremaining: {}".format(
-            len(symbols)))
+        print("Updating symbol historical data...\tremaining: {}\t{}".format(
+            len(symbols), symbol))
         if not symbol + "_price" in tblist:
             create_symbol_tables(symbol)
         update_symbol_data(symbol)

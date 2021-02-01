@@ -105,7 +105,10 @@ def update_symbol_data(symbol: str):
         dbdata = tb.query("date")
         yfdata = yfapi.query(symbol, 1000, disableInfo=True)
         for stamp in dbdata:
-            dbdata[stamp] = yfdata["price"][stamp]
+            try:
+                dbdata[stamp] = yfdata["price"][stamp]
+            except KeyError:
+                pass
         tb.update(dbdata)
 
     db.commit()

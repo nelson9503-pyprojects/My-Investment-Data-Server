@@ -1,10 +1,7 @@
 from . import yfapi
 from . import iexcloudapi
-from . import symbolinfo_dbkeeper
-from . import histprice_dbkeeper
-from . import dividend_dbkeeper
-from . import stocksplit_dbkeeper
-from . import trendtable_dbkeeper
+from . import trendtable
+from . import investdb_keepers
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font
@@ -14,13 +11,15 @@ import os
 class USStockUpdater:
 
     def __init__(self, db_folder_path: str):
-        self.info_keeper = symbolinfo_dbkeeper.DBKeeper(db_folder_path)
-        self.price_keeper = histprice_dbkeeper.DBKeeper(db_folder_path)
-        self.divid_keeper = dividend_dbkeeper.DBKeeper(db_folder_path)
-        self.split_keeper = dividend_dbkeeper.DBKeeper(db_folder_path)
-        self.trend_keeper = trendtable_dbkeeper.DBKeeper(db_folder_path)
+        self.info_keeper = investdb_keepers.SymbolInfoKeeper(db_folder_path)
+        self.price_keeper = investdb_keepers.HistoricalPriceKeeper(
+            db_folder_path)
+        self.divid_keeper = investdb_keepers.DividendKeeper(db_folder_path)
+        self.split_keeper = investdb_keepers.StockSplitKeeper(db_folder_path)
+        self.trend_keeper = investdb_keepers.TrendTableKeeper(db_folder_path)
 
     def update_symbols(self):
+        # get symbol from IEX Cloud
         while True:
             self.__print_report("getting symbols from IEX Cloud...")
             token = self.__get_iex_token()
@@ -31,58 +30,54 @@ class USStockUpdater:
                 self.__print_report("waiting iex token from user...")
                 self.__ask_user_for_iex_token()
         # disable all symbols in us market
-        data = self.info_keeper.query('WHERE market = "us" AND type = "stock"')
+        data = self.info_keeper.query()
         n = 0
-        for symbol in data:
+        for symbol in data.get_key_list():
             n += 1
             self.__print_report(
-                "disabling symbols...\t{}/{}".format(n, len(data)))
-            data[symbol]["enable"] = False
+                "disabling symbols...\t{}/{}".format(n, len(data.get_key_list())))
+            data.write(symbol, "enable", False)
         # enable symbols
         n = 0
         for symbol in symbols:
             n += 1
             self.__print_report(
                 "enabling symbols...\t{}/{}".format(n, len(symbols)))
-            if symbol in data:
-                data[symbol]["enable"] = True
-                data[symbol]["type"] = "stock"
-                data[symbol]["market"] = "us"
-            else:
-                data[symbol] = {"enable": True,
-                                "type": "stock", "market": "us"}
-        self.info_keeper.update(data)
+            data.write(symbol, "enable", True)
+            data.write(symbol, "type", "stock")
+            data.write(symbol, "market", "us")
+        self.info_keeper.update(data.to_dict())
 
     def update_info(self):
-        data = self.info_keeper.query(
-            'WHERE market = "us" AND enable = True AND type = "stock"')
-        symbols = list(data.keys())
+        data = self.info_keeper.query()
+        symbols = data.get_key_list()
         n = 0
         for symbol in symbols:
             n += 1
             self.__print_report(
                 "updating symbol information...\t{}/{}\t{}".format(n, len(symbols), symbol))
             api = yfapi.YFAPI(symbol)
-            data[symbol]["short_name"] = api.shortName()
-            data[symbol]["long_name"] = api.longName()
-            data[symbol]["sector"] = api.sector()
-            data[symbol]["industry"] = api.industry()
-            data[symbol]["shares_outstanding"] = api.sharesOutstanding()
-            data[symbol]["market_cap"] = api.marketCap()
-            data[symbol]["fin_currency"] = api.financialCurrency()
-        self.info_keeper.update(data)
+            data.write(symbol, "short_name", api.shortName())
+            data.write(symbol, "long_name", api.longName())
+            data.write(symbol, "sector", api.sector())
+            data.write(symbol, "industry", api.industry())
+            data.write(symbol, "shares_outstanding", api.sharesOutstanding())
+            data.write(symbol, "market_cap", api.marketCap())
+            data.write(symbol, "fin_currency", api.financialCurrency())
+        self.info_keeper.update(data.to_dict())
 
-    def update_historical_data(self, skipUpdated: bool = True):
+    def update_historical_data(self):
         """
         This method updates historical price, dividend and stock split.
         Because of those three data are requesting from a same request,
         so updating them in same method can reducing requests.
         """
         # get symbols
-        symbols_data = self.info_keeper.query(
-            'WHERE market = "us" AND enable = True AND short_name IS NOT NULL AND sector IS NOT NULL AND industry IS NOT NULL'
-        )
-        symbols = list(symbols_data.keys())
+        symbols_data = self.info_keeper.query()
+        symbols = []
+        for symbol in symbols_data.get_key_list():
+            if symbols_data.read(symbol, "market") == "us" and symbols_data.read(symbol, "enable") == True:
+                symbols.append(symbol)
         n = 0
         for symbol in symbols:
             n += 1
@@ -111,15 +106,32 @@ class USStockUpdater:
         """
         Update trend table of prices data.
         """
-        master_info = self.price_keeper.query_full_master_info()
-        symbols = list(master_info.keys())
+        price_info = self.price_keeper.query_master()
+        trendtable_info = self.trend_keeper.query_master()
+        symbols = price_info.get_key_list()
         n = 0
         for symbol in symbols:
             n += 1
             self.__print_report(
                 "updating trend table data...\t{}/{}\t{}".format(n, len(symbols), symbol))
-            price = self.price_keeper.query_price(symbol)
-            self.trend_keeper.update(symbol, price)
+            if symbol in trendtable_info.get_key_list():
+                last_update = trendtable_info.read(symbol, "last_update")
+                if last_update == 0:
+                    last_update = -9999999999999
+            price = self.price_keeper.query(symbol, start_timestamp=last_update-6307200)
+            dates = price.get_key_list()
+            adjcloses = price.get_col_data("adjclose")
+            updates = {}
+            for i in range(len(dates)):
+                date = dates[i]
+                if date < last_update or i < 378:
+                    continue
+                li = adjcloses[i-378+1:i+1]
+                result = trendtable.cal_trend_serious(li, 3)
+                updates[date] = {}
+                for t in result:
+                    updates[date]["tb"+str(t)] = result[t]
+            self.trend_keeper.update(symbol, updates)
 
     def __get_iex_token(self) -> str:
         token_path = "./iex_token.txt"

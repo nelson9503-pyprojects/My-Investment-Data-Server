@@ -1,21 +1,12 @@
 [submodule "My_Investment_Database/yfapi"]
-	path = My_Investment_Database/yfapi
+	path = data_server/yfapi
 	url = https://github.com/nelson9503-pymodules/yfapi.git
 [submodule "My_Investment_Database/iexcloudapi"]
-	path = My_Investment_Database/iexcloudapi
+	path = data_server/iexcloudapi
 	url = https://github.com/nelson9503-pymodules/iexcloudapi.git
-[submodule "My_Investment_Database/histprice_dbkeeper"]
-	path = My_Investment_Database/histprice_dbkeeper
-	url = https://github.com/nelson9503-pymodules/histprice_dbkeeper.git
-[submodule "My_Investment_Database/dividend_dbkeeper"]
-	path = My_Investment_Database/dividend_dbkeeper
-	url = https://github.com/nelson9503-pymodules/dividend_dbkeeper.git
-[submodule "My_Investment_Database/symbolinfo_dbkeeper"]
-	path = My_Investment_Database/symbolinfo_dbkeeper
-	url = https://github.com/nelson9503-pymodules/symbolinfo_dbkeeper.git
-[submodule "My_Investment_Database/stocksplit_dbkeeper"]
-	path = My_Investment_Database/stocksplit_dbkeeper
-	url = https://github.com/nelson9503-pymodules/stocksplit_dbkeeper.git
-[submodule "My_Investment_Database/trendtable_dbkeeper"]
-	path = My_Investment_Database/trendtable_dbkeeper
-	url = https://github.com/nelson9503-pymodules/trendtable_dbkeeper.git
+[submodule "data_server/trendtable"]
+	path = data_server/trendtable
+	url = https://github.com/nelson9503-pymodules/trendtable.git
+[submodule "data_server/investdb_keepers"]
+	path = data_server/investdb_keepers
+	url = https://github.com/nelson9503-pymodules/investdb_keepers.git

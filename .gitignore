@@ -133,3 +133,4 @@ dmypy.json
 
 # my test file
 try*
+one_time_process.py

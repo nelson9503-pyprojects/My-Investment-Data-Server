@@ -1,4 +1,4 @@
-from My_Investment_Database.us_stock_updater import USStockUpdater
+from data_server.us_stock_updater import USStockUpdater
 from datetime import datetime
 import time
 
